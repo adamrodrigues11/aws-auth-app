@@ -1,6 +1,8 @@
 import express from "express";
 import * as db from "./database.js";
 import bcrypt from "bcrypt";
+import * as jwt from "./jwt.js";
+import { verify } from "jsonwebtoken";
 
 const app = express();
 app.use(express.json());
@@ -34,8 +36,11 @@ app.post("/api/login", async (req, res) => {
         return;
     }
 
+    // create jwt token
+    const accessToken = jwt.generateToken({sub: user.id, email: user.email});
+
     console.log("login", user);
-    res.send({status: "ok"});
+    res.status(200).send({accessToken: accessToken});
 });
 
 
@@ -62,20 +67,23 @@ app.post("/api/signup", async (req, res) => {
     // create user in database
     const user = await db.createUser({email, password: hashedPassword, displayName});
     
+    // create jwt token
+    const accessToken = jwt.generateToken({sub: user.id, email: user.email});
+
     console.log("sign up", user)
-    res.send({status: "ok"});
+    res.status(200).send({accessToken: accessToken});
 });
 
 // UPDATE DISPLAY NAME
-app.put("/api/users/:id/displayName", (req, res) => {
-    console.log("update display name", req.body)
+app.put("/api/users/:id/displayName", jwt.authorize, (req, res) => {
+    console.log("update display name", req.user)
     res.send({status: "ok"});
 });
 
 
 // UPDATE PROFILE IMAGE
-app.put("/api/users/:id/profileImage", (req, res) => {
-    console.log("update profile image", req.body)
+app.put("/api/users/:id/profileImage", jwt.authorize, (req, res) => {
+    console.log("update profile image", req.user)
     res.send({status: "ok"});
 });
 
